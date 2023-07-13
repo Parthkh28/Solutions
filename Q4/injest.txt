@@ -1,0 +1,19 @@
+# Configure cloud storage credentials
+# Use appropriate commands to copy the JSON files to DBFS
+dbutils.fs.cp("path_to_cloud_folder_containing_json_files", "dbfs:/mnt/delta/json_files")
+
+# Create Databricks Delta table
+spark.sql("""
+    CREATE TABLE IF NOT EXISTS json_table
+    USING DELTA
+    LOCATION 'dbfs:/mnt/delta/json_table'
+    TBLPROPERTIES ('delta.automaticSchemaMerge': 'true')
+""")
+
+# Load JSON files into the Delta table using Autoloader
+spark.sql("""
+    ALTER TABLE json_table
+    ADD IF NOT EXISTS
+    USING json
+    LOCATION 'dbfs:/mnt/delta/json_files'
+""")

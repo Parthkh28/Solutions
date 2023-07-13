@@ -1,0 +1,47 @@
+Retrieve the top 5 customers who have made the highest average order amounts in the last 6 months:
+SELECT c.customer_id, c.name, AVG(oi.price) AS average_order_amount
+FROM Customer c
+JOIN "Order" o ON c.customer_id = o.customer_id
+JOIN OrderItem oi ON o.order_id = oi.order_id
+WHERE o.order_date >= DATE('now', '-6 months')
+GROUP BY c.customer_id, c.name
+ORDER BY average_order_amount DESC
+LIMIT 5;
+
+Retrieve the list of customers whose order value is lower this year as compared to the previous year:
+SELECT c.customer_id, c.name
+FROM Customer c
+JOIN "Order" o ON c.customer_id = o.customer_id
+JOIN (
+    SELECT customer_id, SUM(price) AS total_order_value
+    FROM OrderItem oi
+    JOIN "Order" o ON oi.order_id = o.order_id
+    WHERE o.order_date >= DATE('now', '-2 years') AND o.order_date < DATE('now', '-1 year')
+    GROUP BY customer_id
+) prev_year ON c.customer_id = prev_year.customer_id
+JOIN (
+    SELECT customer_id, SUM(price) AS total_order_value
+    FROM OrderItem oi
+    JOIN "Order" o ON oi.order_id = o.order_id
+    WHERE o.order_date >= DATE('now', '-1 year')
+    GROUP BY customer_id
+) current_year ON c.customer_id = current_year.customer_id
+WHERE current_year.total_order_value < prev_year.total_order_value;
+
+Create a table showing cumulative purchase by a particular customer:
+CREATE TABLE IF NOT EXISTS CumulativePurchase (
+    customer_id INTEGER,
+    purchase_date TEXT,
+    cumulative_amount REAL,
+    PRIMARY KEY (customer_id, purchase_date),
+    FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
+);
+
+Retrieve the list of top 5 selling products and bifurcate the sales by product variants:
+SELECT p.name AS product_name, pv.name AS variant_name, COUNT(oi.order_item_id) AS sales_count
+FROM Product p
+LEFT JOIN ProductVariant pv ON p.product_id = pv.product_id
+LEFT JOIN OrderItem oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, pv.variant_id
+ORDER BY sales_count DESC
+LIMIT 5;
